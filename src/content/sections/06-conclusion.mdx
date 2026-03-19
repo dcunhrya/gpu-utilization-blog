@@ -1,0 +1,13 @@
+---
+title: "Conclusion"
+order: 6
+description: "Summary of dataloader and efficiency speedups."
+---
+
+## Conclusion
+
+Optimizing your GPU pipeline ultimately comes down to two core principles: keeping the GPU constantly loaded with data and making every operation count once the data arrives.
+
+On the data pipeline side, tuning the `DataLoader` by increasing `num_workers`, enabling `pin_memory`, and setting a `prefetch_factor`, yields a more continuous GPU utilization. On the compute side, maximizing batch size (or utilizing gradient accumulation), dropping to mixed precision (FP16/BF16 or TF32), and fusing operations via `torch.compile()` or the Hugging Face `kernels` library drastically reduces VRAM traffic and kernel overhead.
+
+Together, these straightforward engineering tweaks turn hours of wasted, memory-bound idle time into a high-speed, fully utilized research pipeline.

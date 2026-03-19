@@ -1,0 +1,82 @@
+---
+title: "Compute and Memory on the GPU"
+order: 5
+description: "Making the model itself more GPU-efficient."
+---
+
+## Compute and Memory on the GPU
+
+Once the DataLoader is optimized, data is flying across the PCIe bridge, no longer creating the sawtooth GPU utilization bottleneck. But once the data moves to GPU VRAM, how do we make sure it is being used efficiently?
+
+### Batch Size
+
+Let's revisit the Roofline Model. To escape the slanted "Memory-Bound" roof and reach the flat "Compute-Bound" maximum performance of your GPU, you need high **Arithmetic Intensity**. The absolute easiest way to increase arithmetic intensity is to increase your batch size. Loading a single massive matrix of size 1024x1024 and doing the math all at once is drastically more efficient for the GPU's streaming multiprocessors than loading 32 smaller matrices sequentially.
+
+In theory we should just load all of our data in at once and have a singular batch, but in practice, everyone has seen the dreaded `CUDA Out of Memory` error. This means you are trying to load more data in VRAM, but there is no more space to allocate on the GPU.
+
+<Callout type="tip" title="Note">
+You may be wondering why batch size, `num_workers`, or any deep learning metric is commonly a power of 2.
+It's not just a de facto rule but a result of Nvidia hardware design.
+
+1. Inside an SM, a GPU does not execute threads individually. It groups them into units called **Warps**, and on NVIDIA GPUs, a warp always contains exactly 32 threads.
+
+2. Beyond the 32-thread warp limit, the physical memory controllers on a GPU fetch data from VRAM in power-of-2 byte chunks. If your tensor dimensions are not aligned with these chunks, the GPU has to perform multiple memory fetches to grab the overflowing data.
+
+For maximum efficiency, **choose multiples of** **32** **or** **64** (or 8 if you have memory limitations) for batch size and powers of 2 for other deep learning metrics.
+</Callout>
+
+### Mixed Precision
+
+By default, PyTorch initializes all model weights and data in FP32 (32-bit floating point). For almost all deep learning tasks, this is overkill. The easiest solution is to cast tensors down to FP16 or BF16 (16-bit). Why does this matter for utilization?
+
+1. **It halves the memory bottleneck**: Only half as many bytes are being moved across the PCIe bridge and within the GPU's internal VRAM.
+2. **It unlocks the hardware**: Modern Nvidia GPUs possess specialized silicon called Tensor Cores. These cores sit completely idle if you pass them FP32 math. They are specifically engineered to execute 16-bit matrix multiplications at high speeds.
+
+Before casting to FP16, make sure the performance is the same with a subsampled dataset to confirm the task at hand doesn’t require FP32. Another option is to use PyTorch's `torch.autocast`. With this built-in PyTorch function, the forward pass is wrapped in a context manager, and PyTorch will automatically figure out which operations are safe to cast to 16-bit (like matrix multiplications) and which need to stay in 32-bit for numerical stability (like Softmax or LayerNorm). It is essentially a free 2x speedup.
+
+As a side note, FP16 or BF16 is not always the best method for quantization. On modern NVIDIA architectures (A100s or H100s), BF16 should be used instead of FP16 to avoid any NaN losses or gradient underflow. Another good option is Nvidia’s proprietary TF32 (TensorFloat-32) format which is a 19-bit floating-point format that maintains FP32 accuracy with a 10x speedup over FP32 on A100s and H100s [[3]](#ref-3). 
+
+### Gradient Accumulation (Training Only)
+
+When training a model, instead of trying to force a large batch size into VRAM and crashing, use a smaller “micro-batch”. When using the “micro-batch”,  instead of updating the model's weights immediately (calling `optimizer.step()`), simply accumulate the gradients (`loss.backward()`) over several consecutive forward passes, which results in the “effective batch size” . For example, using a batch size of 8 with 8 steps of gradient accumulation yields the exact same mathematical update as a batch size of 64 with a single update. This can stabilize training without blowing up your VRAM footprint.
+
+### Kernel Efficiency
+
+The final efficiency idea we will present is on kernel efficiency in both training and inference. 
+This is more an exploration into understanding how CUDA kernels work within a GPU and for those intending to work with custom architectures, as PyTorch 2.0+ (which is almost always used), abstracts this away from the user with a simple command shown below. 
+Let’s start with a deeper dive into the GPU and how kernels function:
+
+Every time you execute an operation in PyTorch (we will use `d=a+b+c` as a simple example), you are launching a "kernel" on the GPU. Abstracting away the intricacies of a GPU, it can’t do math in one go. The GPU must:
+
+1. Read `a` and `b` from VRAM into the SM cache.
+2. Compute `a+b`.
+3. Write that intermediate result back to VRAM.
+4. Read that intermediate result and c from VRAM.
+5. Compute the final addition.
+6. Write d back to VRAM.
+
+This is **Kernel Overhead**. If you are building custom architectures from scratch, it is easy to accidentally create hundreds of these tiny, sequential reads and writes. The GPU cores spend all their time waiting on the internal VRAM rather than doing math. Understanding custom CUDA kernels allows you to fuse kernels together to reduce this overhead, but thankfully, PyTorch 2.0+ implicitly handles this with `torch.compile()`. PyTorch analyzes the entire computational graph and uses OpenAI's Triton to automatically write highly optimized, fused kernels. This can shave hours off a long training run by drastically reducing memory round-trips.
+
+While `torch.compile()` is phenomenal for automatic, general-purpose operation fusion, sometimes squeezing out performance gains requires highly specialized kernels. 
+Historically, integrating these hand-written CUDA or Triton kernels into your research meant wrestling with complex C++ build systems and matching CUDA toolkit versions. 
+Thankfully, the **Hugging Face `kernels` library** [[4]](#ref-4) treats low-level compute operations just like pretrained models. Instead of compiling from source, you can fetch pre-compiled, hardware-optimized binaries directly from the Hub with a single Python function call. 
+The library automatically detects your exact PyTorch and GPU environment and downloads the perfect match in seconds. 
+
+A simple example of using the Hugging Face `kernels` library is shown below (from the Hugging Face `kernels` library documentation [[4]](#ref-4)):
+```python
+import torch
+
+from kernels import get_kernel
+
+# Download optimized kernels from the Hugging Face hub
+activation = get_kernel("kernels-community/activation", version=1)
+
+# Random tensor
+x = torch.randn((10, 10), dtype=torch.float16, device="cuda")
+
+# Run the kernel
+y = torch.empty_like(x)
+activation.gelu_fast(y, x)
+
+print(y)
+```

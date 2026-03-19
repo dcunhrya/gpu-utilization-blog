@@ -1,0 +1,91 @@
+---
+title: "Optimizing the Data Pipeline"
+order: 4
+description: "Techniques to keep the GPU fed with data."
+---
+
+## Optimizing the Data Pipeline
+
+### Tracking GPU Utilization
+
+Before we can optimize the data pipeline, we must understand how to actually monitor GPU utilization and VRAM. The easiest way is to simply use `nvidia-smi` to get a table with all available GPUs, current VRAM, and volatile GPU Utilization. 
+
+<img src={`${import.meta.env.BASE_URL}nvidia_smi.png`} alt="nvidia-smi output" />
+
+_Sample output of `nvidia-smi`. The CUDA and driver versions are shown in the header. Each row of the table represents a GPU. The columns show the GPU ID, Power Usage, GPU Utilization, and Memory Usage_
+
+With `watch -n 1 nvidia-smi`, these metrics can be monitored and updated every second. However, the best way to get more detailed GPU metrics is either using the PyTorch Profiler or Weights and Biases. Weights and Biases offers the easiest visualization of GPU utilization graphs, and these graphs are the easiest way to diagnose poor GPU optimization. 
+An example setup for Weights and Biases is shown here (take directly from Weights and Biases' documentation [[2]](#ref-2)):
+```python
+import wandb
+
+# Project that the run is recorded to
+project = "my-awesome-project"
+
+# Dictionary with hyperparameters
+config = {"epochs": 1337, "lr": 3e-4}
+
+# The `with` syntax marks the run as finished upon exiting the `with` block,
+# and it marks the run "failed" if there's an exception.
+#
+# In a notebook, it may be more convenient to write `run = wandb.init()`
+# and manually call `run.finish()` instead of using a `with` block.
+with wandb.init(project=project, config=config) as run:
+    # Training code here
+
+    # Log values to W&B with run.log()
+    run.log({"accuracy": 0.9, "loss": 0.1})
+```
+
+The easiest indicator of an unoptimized GPU pipeline is a sawtooth GPU utilization graph. This is where GPU utilization idles at 0%, briefly spikes to 100%, and then idles back at 0%. This is a clear CPU to GPU bottleneck issue. Many assume that hitting 100% utilization is a sign that everything is fine. It isn't. The GPU is simply tearing through the data in a fraction of a second, and the 0% valleys represent the wait for the CPU to prepare the next batch. It is far more important to have continuous utilization- a flat, unbroken line near 100%, meaning the GPU never has to wait.
+An example of a sawtooth GPU utilization graph in the same format as Weights and Biases is shown below:
+
+<GPUUtilizationChart />
+
+Let’s see why this happens in a basic PyTorch `DataLoader`. By default, a PyTorch `DataLoader` could be defined as follows: 
+```python
+DataLoader(dataset, batch_size=32, shuffle=True, num_workers=0, pin_memory=False)
+```
+
+​​With `num_workers=0` and `pin_memory=False` (the default values in a `DataLoader`), the main Python process has to do everything sequentially:
+
+1. Fetch the files from the disk.
+2. Apply image augmentations or preprocess text.
+3. Move the batch to the GPU.
+4. Only then does the GPU compute the forward and backward passes.
+
+This is the worst case scenario for GPU utilization. While steps 1 and 2 are happening, GPU utilization sits at 0%. When step 3 is complete, the GPU utilization spikes to 100%, and then steps 1 and 2 are repeated for the next batch.
+
+The next few sections discuss the parameters that can be used to optimize the data pipeline.
+Below is a visual of how changing the `num_workers` and `pin_memory` parameters can affect total time and GPU utilization.
+
+<DataLoaderTimeline />
+
+### `num_workers` (Parallelizing the CPU)
+
+The first and most impactful fix is parallelizing the data preparation. By increasing `num_workers`, you tell PyTorch to spawn dedicated subprocesses whose sole job is to fetch and prepare batches in the background while the GPU is busy computing.
+However, more workers do not infinitely equal more speed. If you have an 8-core CPU and set `num_workers=16`, you will actually _slow down_ your training due to context-switching overhead and Inter-Process Communication (IPC). 
+Furthermore, each worker creates a copy of the dataset in memory. Too many workers can easily cause severe memory thrashing and crash your system. A good rule of thumb is starting at `num_workers=4` and profiling from there.
+
+### `pin_memory=True` (Optimized Data Transfer)
+
+Even with background workers, how the data physically transfers across the PCIe bridge matters. Normally, when you transfer a tensor to the GPU, it doesn't go straight there. It is first read from the disk into paged system RAM. The CPU then has to copy it into a special unpaged (or page-locked) area of RAM before it can finally cross the PCIe bus to the GPU VRAM.
+
+Setting `pin_memory=True` acts as a data fast lane. It instructs your `DataLoader` to allocate those batches directly into page-locked memory from the start. This allows the GPU to use Direct Memory Access (DMA) to pull the data directly across the bridge without the CPU having to act as a middleman for the final transfer, significantly reducing latency.
+
+### `prefetch_factor` (Queueing up Data)
+
+Sometimes, the bottleneck isn't the CPU's processing power, but the disk itself. When reading thousands of individual files from a network drive, there may be some sudden spikes in I/O latency to no fault of the user.
+
+The `prefetch_factor` argument dictates how many batches each worker should prepare and hold in a queue _in advance_. If you have 4 workers and a `prefetch_factor=2`, the CPU will always try to keep 8 ready-to-go batches queued up. If the disk suddenly hangs for half a second on a corrupted file, the GPU won't starve- it just pulls from the prefetch queue while the worker catches up. 
+
+<Callout type="tip" title="Note">
+Be sure to not set `prefetch_factor` too high, as it may cause the GPU to wait for the CPU to catch up. A good rule of thumb is to set `prefetch_factor` to 2 or 3. It can also cause `CUDA Out of Memory` errors if you set it too high.
+</Callout>
+
+By adjusting all of these parameters, you will be able to go from the sawtooth GPU utilization graph to a high, continuous utilization.
+This is an example of what you should be aiming for:
+
+<GPUUtilizationChart variant="optimized" />
+
+The GPU utilization is now a high, continuous line near 100%, meaning the GPU never has to wait! Just with data loading parameters, we were able to go from an inefficient GPU utilization graph to a high, continuous utilization.

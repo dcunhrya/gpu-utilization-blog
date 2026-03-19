@@ -1,0 +1,10 @@
+---
+import GPUUtilizationChart from './react/GPUUtilizationChart';
+
+interface Props {
+  variant?: 'sawtooth' | 'optimized';
+}
+const { variant = 'sawtooth' } = Astro.props;
+---
+
+<GPUUtilizationChart client:load variant={variant} />

@@ -1,0 +1,41 @@
+---
+title: "GPU Overview"
+order: 2
+description: "Understanding GPU architecture and why it matters for deep learning."
+---
+
+## GPU Overview
+
+To start, Graphics Processing Units (GPUs) have exploded in popularity with the advent of deep learning, due to their ability to train and run models at lightning speeds with highly parallelizable operations.
+But what actually does a GPU do? Before we can optimize our code, we need a shared mental model of what is actually happening under the hood in a GPU, the difference from a CPU, and the connection between the two.
+
+### What is a GPU? How does it differ from a CPU?
+
+Contrary to popular belief, a GPU is not as fast as a CPU at everything. CPUs are designed to solve highly sequential problems with low latency and complex branching. This is ideal for running an operating system. GPUs, on the other hand, are thousands of cores optimized to complete basic operations in parallel. 
+While a CPU would need to process a thousand matrix multiplications sequentially (or up to the limit of its cores), a GPU can run it all in parallel in a fraction of a second. In machine learning, we rarely deal with highly sequential problems requiring a CPU. In fact, most operations are matrix multiplication, which is a highly parallelizable task.
+We can see the difference in CPU and GPU architecture at a high level below:
+
+<img src={`${import.meta.env.BASE_URL}cpu_v_gpu.png`} alt="CPU vs. GPU layout" />
+
+*CPU vs. GPU layout. GPUs contain thousands of cores optimized for parallel computation, while CPUs are designed for sequential operations with more levels of hierarchical caching. [[1]](#ref-1)*
+
+A GPU consists of many complex parts, but at a high level, it consists of thousands of tiny, efficient processing cores grouped into Streaming Multiprocessors (SMs) designed for massive parallel computation. 
+SMs are like independent mini-processors that manage, schedule, and execute hundreds of threads concurrently.
+A high-bandwitch memory pool called Video RAM (VRAM) surrounds the compute units, along with ultra-fast L1 and L2 caches that can temporarily cache data. 
+VRAM acts as the main warehouse where your model weights, gradients, and incoming data batches live. While it has immense capacity, it is relatively slow for the cores to access directly. 
+To prevent the SMs from waiting on VRAM reads, the GPU utilizes ultra-fast L1 and L2 caches that can temporarily cache data. The L2 cache is shared across the entire GPU, while an even faster L1 cache sits directly inside each individual SM.
+Nvidia GPUs also contain Tensor Cores, which accelerate mixed-precision matrix math using in machine learning. 
+CPUs and GPUs communicate with each other via an interface bridge, which we will analyze more in depth below, as this is the main bridge where bottlenecks occur.
+
+### PCIe Bridge
+
+As we just mentioned, data travels from the CPU to the GPU across an interface bridge. This is the Peripheral Component Interconnect Express (PCIe). Data originates on your disk, gets loaded into the host's System RAM, and then must cross the PCIe bus to reach the GPU's VRAM. 
+Every time you send a PyTorch tensor to the device using `.to('cuda')`, you are invoking a transfer across this bridge. If your CPU is constantly sending tiny tensors one by one instead of large, contiguous blocks, you can easily clog the bridge with latency and overhead.
+
+### What is GPU Utilization?
+
+Now that we have talked about the parts of a GPU, we need to understand the metrics we are tracking. 
+Whether you use `nvidia-smi`, Weights and Biases, PyTorch profiler, or any other method of GPU tracking, we generally analyze two main percentages: **Memory Usage** and **Volatile GPU-Util**.
+
+- **Memory Usage (VRAM)**: VRAM is the GPU’s physical memory. Your VRAM can be at 100% capacity while your GPU is doing nothing. This just means you have successfully loaded your model weights, gradients, and a batch of data onto the GPU's physical memory. 
+- **Volatile GPU-Util (Compute Utilization)**: This is the crucial metric. It measures the percentage of time over the past sample period (usually 1 second) that the GPU's computing kernels were actively executing instructions. The goal is to consistently maximize this percentage!
