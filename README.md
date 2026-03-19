@@ -1,42 +1,34 @@
-# GPU Utilization Research Blog
+# An Interactive Guide to GPU Utilization
 
-A research blog on GPU utilization in deep learning, built with **Astro**, **React**, **MDX**, and **Tailwind CSS**.
+This repository is the source for a **long-form, interactive article** about keeping GPUs busy in deep learning workflows. It is written for researchers and engineers who use PyTorch day to day and want a clear mental model of **why** training or inference feels slow—and **what** to change first (most of the time without touching CUDA).
 
-## Structure
+The published site is a **single scrolling page** with a table of contents, prose sections, and embedded visuals you can explore (charts, timelines, and similar components) so ideas like the CPU–GPU pipeline, PCIe transfers, and utilization metrics are easier to reason about than in a static PDF alone.
 
-- **Sections** live in `src/content/sections/` as numbered MDX files (e.g. `01-introduction.mdx`). Edit these to write the blog.
-- **Single-page layout**: All sections are composed in order on the index page with a sticky table of contents in the sidebar.
-- **Interactive components**: Use `<Callout type="tip">`, `<Callout type="warning">`, etc., and `<CodeBlock lang="python">` in your MDX; they are wired globally.
+## Live site
 
-## Commands
+**[https://dcunhrya.github.io/gpu-utilization-blog/](https://dcunhrya.github.io/gpu-utilization-blog/)**
 
-| Command        | Action                                      |
-|----------------|---------------------------------------------|
-| `npm run dev`  | Start dev server at `localhost:4321`        |
-| `npm run build`| Build static site to `./dist/`              |
-| `npm run preview` | Preview the production build locally    |
+*(If the link is not live yet, the site is deployed from this repo via GitHub Pages.)*
 
-## Deploy to GitHub Pages
+## What you’ll find
 
-This repo includes [`.github/workflows/deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml). It builds with Astro’s [`site`](https://docs.astro.build/en/reference/configuration-reference/#site) and [`base`](https://docs.astro.build/en/reference/configuration-reference/#base) set from the repository name so the site works both as a **user/org site** (`username.github.io`) and as a **project site** (`username.github.io/repo-name/`).
+The piece walks from high-level hardware intuition to practical PyTorch-oriented guidance:
 
-1. Push this project as a GitHub repository (`.github/` must sit at the **repository root**). If this app lives in a subfolder of a larger repo, move the workflow to the repo root and add `defaults.run.working-directory` pointing at that folder on all `run` steps, or keep a separate repo for the site.
-2. In the repo on GitHub: **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**.
-3. Push to `main` or `master` (or run the workflow manually). The site URL appears in the workflow run and under Pages settings.
+1. **Introduction** — Why GPU efficiency matters in modern ML and how CPU-side work can leave the GPU idle.  
+2. **GPU overview** — CPUs vs GPUs, VRAM, caches, the PCIe bridge, and how to read utilization and memory metrics.  
+3. **The bottleneck** — How the CPU–GPU split shows up in practice, including the **roofline** idea (memory-bound vs compute-bound regimes) with an interactive visualization.  
+4. **Optimizing the data pipeline** — Keeping the GPU fed: monitoring, `DataLoader` workers, pinning memory, and related choices.  
+5. **Compute and memory on the GPU** — Model-side levers that affect how hard the device works and how data moves.  
+6. **Conclusion** — Takeaways that tie the threads together.  
+7. **References** — Citations and further reading.
 
-To preview a project-page build locally (replace `your-repo` with the GitHub repo name):
+## Authors
 
-```bash
-SITE_URL=https://your-username.github.io BASE_PATH=/your-repo/ npm run build && npm run preview
-```
+- **Ryan D’Cunha** — Stanford University  
+- **Jason Fries**
 
-## Sections (in order)
+## About the implementation
 
-1. Introduction  
-2. GPU Overview
-3. What is the GPU Bottleneck?  
-4. Optimizing Dataloaders  
-5. Optimizing the Model  
-6. Profiling  
+The article is authored as **MDX** (Markdown with interactive components), built as a static site with **Astro**, and styled with **Tailwind CSS**. Charts and other interactive pieces use **React** where needed. The same content powers both local development and the GitHub Pages deployment in `.github/workflows/`.
 
-To reorder or add sections, add or rename MDX files in `src/content/sections/` and set the `order` field in frontmatter if needed.
+If you are looking to **edit** the article or **run** the project locally, the section files live under `src/content/sections/`; the entry page is `src/pages/index.astro`.
