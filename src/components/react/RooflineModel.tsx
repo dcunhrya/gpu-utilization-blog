@@ -76,7 +76,7 @@ export default function RooflineModel() {
     <div className="my-8 rounded-xl border border-slate-200 bg-slate-50/80 p-6">
       <p className="mb-4 text-slate-700">
         Try dragging the <strong>Batch Size</strong> slider or adjusting <strong>Precision</strong> (that is discussed later on) below to see the Roofline Model in action.
-        Notice how increasing the batch size shifts your workload to the right. You move out of
+        Notice how increasing batch size shifts workload to the right. You move out of
         the slanted <strong>Memory-Bound</strong> region, where you are limited by PCIe or VRAM
         bandwidth, and up into the flat <strong>Compute-Bound</strong> region, where you are
         finally maxing out the GPU&apos;s actual compute limit.

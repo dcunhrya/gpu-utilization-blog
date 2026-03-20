@@ -6,11 +6,17 @@ description: "Overview of GPU utilization in deep learning."
 
 ## Introduction
 
-Modern AI research demands large-scale models and data. As a result, compute is a strictly finite resource. It is not uncommon to be training or running inference on models with billions of parameters requiring tens of gigabytes of VRAM. Whether you are fine-tuning a transformer or processing multimodal datasets, maximizing your GPU efficiency is critical. An unoptimized setup can easily turn a quick experiment into hours or days of waiting while GPUs stall.
+Modern AI research demands large-scale models and data. As a result, compute is a strictly finite resource. 
+It is not uncommon to be training or running inference on models with billions of parameters requiring tens of gigabytes of VRAM. 
+Whether you are fine-tuning a transformer or processing multimodal datasets, maximizing your GPU efficiency is critical. 
+An unoptimized setup can turn a quick experiment into hours or days of waiting.
 
-When training or inference crawls, our instinct is often to blame the model size or the complexity of the math. Modern GPUs are extremely fast calculators, but they are entirely dependent on the CPU to hand them work and where on the GPU the data is stored. Most times, the computation on the GPU is not the bottleneck. If your CPU is struggling to load, preprocess, and transfer your batches across the PCIe bridge, your GPU spends its time sitting idle, starving for data.
+When training or inference crawls our instinct is often to blame the model size or mathematical complexity. 
+Modern GPUs are fast calculators, but they are dependent on the CPU to allocate work and the on-device data storage location on the GPU. 
+Usually, computation on the GPU is not the bottleneck. If your CPU is struggling to load, preprocess, and transfer your batches across the PCIe bridge, your GPU sits idle, starving for data.
 
-The good news? You don't need to write custom CUDA kernels or debug low-level GPU code to fix it. In this post, we will explore the mechanics of this bottleneck and walk through actionable PyTorch engineering decisions. By optimizing your DataLoader workers, pinning memory, and managing precision, you can unblock your pipeline and keep your experiments running at full speed.
+The good news? You don't need to write custom CUDA kernels or debug low-level GPU code to fix it. 
+In this post, we explore the mechanics of this bottleneck and walk through actionable PyTorch engineering decisions. By optimizing your DataLoader workers, pinning memory, and managing precision, you can unblock your pipeline and keep your experiments running at full speed.
 
 <Callout type="tip" title="Note">
 We will be assuming a basic working knowledge of **Python** and **PyTorch DataLoaders** going forward.
