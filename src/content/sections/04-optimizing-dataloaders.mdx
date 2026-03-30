@@ -14,7 +14,9 @@ Before we can optimize the data pipeline, we must understand how to monitor GPU 
 
 _Sample output of `nvidia-smi`. The CUDA and driver versions are shown in the header. Each row of the table represents a GPU. The columns show the GPU ID, Power Usage, GPU Utilization, and Memory Usage_
 
-With `watch -n 1 nvidia-smi`, metrics can be monitored and updated every second. However, the best way to get more detailed GPU metrics is either using the PyTorch Profiler or Weights and Biases. Weights and Biases offers the easiest visualization of GPU utilization graphs, and these graphs are the easiest way to diagnose poor GPU optimization. 
+With `watch -n 1 nvidia-smi`, metrics can be monitored and updated every second. However, the best way to get more detailed GPU metrics is either using the PyTorch Profiler or Weights and Biases. 
+Nvidia Nsight Systems is also a great tool for monitoring that is relatively fast to setup [here](https://docs.nvidia.com/nsight-systems/UserGuide/index.html).
+Weights and Biases offers the easiest visualization of GPU utilization graphs for our purposes, and these graphs are the easiest way to diagnose poor GPU optimization. 
 An example setup for Weights and Biases is shown here (take directly from Weights and Biases' documentation [[2]](#ref-2)):
 ```python
 import wandb
