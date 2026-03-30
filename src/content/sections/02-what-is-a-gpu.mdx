@@ -42,7 +42,7 @@ Every time you send a PyTorch tensor to the device using `.to('cuda')`, you are 
 ### What is GPU Utilization?
 
 Now that we have covered GPU anatomy, we need to understand the metrics we are tracking. 
-When using `nvidia-smi`, Weights and Biases, PyTorch profiler, or any other method of GPU tracking, we generally analyze two main percentages: **Memory Usage** and **Volatile GPU-Util**.
+When using `nvidia-smi`, Weights and Biases, PyTorch profiler, Nvidia Nsight Systems, or any other method of GPU tracking, we generally analyze two main percentages: **Memory Usage** and **Volatile GPU-Util**.
 
 - **Memory Usage (VRAM)**: VRAM is the GPU’s physical memory. Your VRAM can be at 100% capacity while your GPU is doing nothing. High VRAM usage only means you have successfully loaded your model weights, gradients, and a batch of data onto the GPU's physical memory. 
 - **Volatile GPU-Util (Compute Utilization)**: This is the crucial metric. It measures the percentage of time over the past sample period (usually 1 second) that the GPU's computing kernels were actively executing instructions. The goal is to consistently maximize this percentage!

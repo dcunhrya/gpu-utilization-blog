@@ -71,6 +71,12 @@ The most impactful fix is parallelizing data preparation. By increasing `num_wor
 However, more workers do not infinitely equal more speed. If you have an 8-core CPU and set `num_workers=16`, you will _slow down_ your training due to context-switching overhead and Inter-Process Communication (IPC). 
 Each worker creates a copy of the dataset in memory. Too many workers can cause memory thrashing and crash your system. A good rule of thumb is starting at `num_workers=4` and profiling from there.
 
+<Callout type="tip" title="Note">
+Optimal `num_workers` won't fix a slow `Dataset` implementation. 
+To keep __getitem__ efficient, avoid instantiating objects, per-item DB connections, or heavy preprocessing in the function call. 
+Its only job is to fetch raw bytes, convert them to a tensor, and return.
+</Callout>
+
 ### `pin_memory=True` (Optimized Data Transfer)
 
 Even with background workers, how the data physically transfers across the PCIe bridge matters. 
