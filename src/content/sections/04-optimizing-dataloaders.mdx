@@ -70,12 +70,12 @@ Below is a visual of how changing the `num_workers` and `pin_memory` parameters 
 ### `num_workers` (Parallelizing the CPU)
 
 The most impactful fix is parallelizing data preparation. By increasing `num_workers`, you tell PyTorch to spawn dedicated subprocesses for batch fetching and preparation in the background while the GPU computes.
-However, more workers do not infinitely equal more speed. If you have an 8-core CPU and set `num_workers=16`, you will _slow down_ your training due to context-switching overhead and Inter-Process Communication (IPC). 
+However, more workers do not always mean more speed. If you have an 8-core CPU and set `num_workers=16`, you will _slow down_ your training due to context-switching overhead and Inter-Process Communication (IPC). 
 Each worker creates a copy of the dataset in memory. Too many workers can cause memory thrashing and crash your system. A good rule of thumb is starting at `num_workers=4` and profiling from there.
 
 <Callout type="tip" title="Note">
 Optimal `num_workers` won't fix a slow `Dataset` implementation. 
-To keep __getitem__ efficient, avoid instantiating objects, per-item DB connections, or heavy preprocessing in the function call. 
+To keep `__getitem__` efficient, avoid instantiating objects, per-item DB connections, or heavy preprocessing in the function call. 
 Its only job is to fetch raw bytes, convert them to a tensor, and return.
 </Callout>
 
@@ -95,9 +95,12 @@ Because each worker process is actively generating and holding batches in memory
 
 ### `prefetch_factor` (Queueing up Data)
 
-Sometimes the bottleneck isn't the CPU's processing power, but the disk itself. When reading thousands of files from a network drive, there may be sudden spikes in I/O latency to no fault of the user.
+Sometimes the bottleneck isn't the CPU's processing power, but the disk itself. 
+When reading thousands of files from a network drive, there may be sudden spikes in I/O latency to no fault of the user.
 
-The `prefetch_factor` argument dictates how many batches each worker should prepare and hold in a queue _in advance_. If you have 4 workers and a `prefetch_factor=2`, the CPU will always try to keep 8 ready-to-go batches queued up. If the disk suddenly hangs for half a second on a corrupted file, the GPU won't starve- it just pulls from the prefetch queue while the worker catches up. 
+The `prefetch_factor` argument dictates how many batches each worker should prepare and hold in a queue on the CPU _in advance_. 
+If you have 4 workers and a `prefetch_factor=2`, the CPU will always try to keep 8 ready-to-go batches queued up. 
+If the disk suddenly hangs for half a second on a corrupted file, the GPU won't starve- it just pulls from the prefetch queue while the worker catches up. 
 
 <Callout type="tip" title="Note">
 Be sure to not set `prefetch_factor` too high, as it may cause the GPU to wait for the CPU to catch up. A good rule of thumb is to set `prefetch_factor` to 2 or 3. It can also cause `CUDA Out of Memory` errors if you set it too high.

@@ -7,7 +7,7 @@ description: "Understanding GPU architecture and why it matters for deep learnin
 ## GPU Overview
 
 To start, Graphics Processing Units (GPUs) exploded in popularity alongside deep learning due to their ability to train and run models at lightning speeds with parallelizable operations.
-But what does a GPU actually do? Before optimizing our code, we need a shared mental model of what is happens under the hood in a GPU, the differences from a CPU, and the connection between the two.
+But what does a GPU actually do? Before optimizing our code, we need a shared mental model of what happens under the hood in a GPU, the differences from a CPU, and the dataflow between the two.
 
 ### What is a GPU? How does it differ from a CPU?
 
@@ -36,7 +36,7 @@ They will come up again when we discuss **Mixed Precision**.
 ### PCIe Bridge
 
 As we just mentioned, data travels from the CPU to the GPU across an interface bridge called the Peripheral Component Interconnect Express (PCIe). 
-Data originates on your disk, loads into the host's System RAM, and then crosses the PCIe bus to reach the GPU's VRAM. 
+Data originates on your disk, loads into CPU RAM, and then crosses the PCIe bus to reach the GPU's VRAM. 
 Every time you send a PyTorch tensor to the device using `.to('cuda')`, you are invoking a transfer across this bridge. If your CPU is constantly sending tiny tensors one by one instead of large, contiguous blocks, it quickly clogs the bridge with latency and overhead.
 
 ### What is GPU Utilization?

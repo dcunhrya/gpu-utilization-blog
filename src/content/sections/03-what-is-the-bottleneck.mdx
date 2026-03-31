@@ -6,7 +6,7 @@ description: "Identifying what limits GPU utilization in your pipeline."
 
 ### CPU-GPU Bottleneck
 
-Now that we have covered CPUs and GPUs, let’s look at how the CPU-GPU bottleneck occurs and then what we can do to fix it. The GPU has thousands of cores ready to parallelize operations, but it needs the CPU to delegate tasks. 
+Now that we have covered CPUs and GPUs, let’s look at how the CPU-GPU bottleneck occurs and what we can do to fix it. The GPU has thousands of cores ready to parallelize operations, but it needs the CPU to delegate tasks. 
 When you train a model, your GPU cannot read directly from your SSD. The CPU must load and decode the raw data, apply augmentations, batch it, and hand it off. 
 If your CPU takes 50 milliseconds to prepare a batch, and your GPU only takes 10 milliseconds to compute the forward and backward passes, your GPU spends 40 milliseconds idling.
 
@@ -18,7 +18,7 @@ When arithmetic intensity is high (you load a small amount of data but do a mass
 
 GPU parallelism is rarely the bottleneck for research experiments. 
 Typically slowdowns occur in the memory regime: CPU data parsing, PCle bus clogging, or VRAM bandwidth limits.
-The key to this is almost always faster data movement.
+The key to this is almost always better dataflow management.
 
 ### Visualizing the Roofline Model
 

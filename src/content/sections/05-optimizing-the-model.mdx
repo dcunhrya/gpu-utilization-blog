@@ -87,3 +87,32 @@ activation.gelu_fast(y, x)
 
 print(y)
 ```
+
+### Hugging Face Transformers
+
+As a quick aside, the **Hugging Face `transformers` library** [[5]](#ref-5) includes all the functionality to optimize your model for the GPU we have discussed through its `TrainingArguments` and `Trainer` classes.
+For greatest abstraction, you can simply use the example below to run a model through Hugging Face.
+
+```python
+from transformers import TrainingArguments, Trainer
+
+training_args = TrainingArguments(
+    # Specify an output directory
+    output_dir="./results",
+    # Data Pipeline
+    dataloader_num_workers=4,
+    dataloader_pin_memory=True,
+    dataloader_prefetch_factor=2,
+    # Compute and Memory
+    per_device_train_batch_size=8,
+    gradient_accumulation_steps=4,
+    # Precision and Hardware
+    bf16=True,
+    tf32=True,
+    # Kernel Efficiency
+    torch_compile=True,
+)
+
+trainer = Trainer(model=model, args=training_args, train_dataset=train_dataset)
+trainer.train()
+```
