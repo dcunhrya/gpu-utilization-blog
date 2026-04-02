@@ -42,10 +42,10 @@ const renderedSections = await Promise.all(
     <BlogHeader
       title="An Interactive Guide to GPU Utilization"
       authors={[
-        { name: "Ryan D'Cunha", affiliation: "Stanford University" }
-        
+        { name: "Ryan D'Cunha", affiliation: "Stanford University" },
+        { name: "Jason Fries", affiliation: "" }
       ]}
-      publishedDate="March 30, 2026"
+      publishedDate="April 2, 2026"
     />
     {renderedSections.map(({ id, Content }) => (
       <section id={id} class="scroll-mt-28 mb-16 last:mb-0">

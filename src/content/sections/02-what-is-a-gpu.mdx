@@ -11,8 +11,8 @@ But what does a GPU actually do? Before optimizing our code, we need a shared me
 
 ### What is a GPU? How does it differ from a CPU?
 
-GPUs do not universally outperform CPUs. CPUs are designed to solve highly sequential problems with low latency and complex branching, ideal qualities for running an operating system. 
-Alternatively, GPUs are thousands of cores optimized to complete basic operations in parallel. 
+GPUs do not universally outperform CPUs. CPUs are designed to solve highly sequential problems with low latency and complex branching (ideal qualities for running an operating system). 
+Alternatively, GPUs consist of thousands of cores optimized to complete basic operations in parallel. 
 While a CPU would need to process a thousand matrix multiplications sequentially (or up to the limit of its cores), a GPU can run all these operations in parallel (in a fraction of a second). In machine learning, we rarely deal with highly sequential problems requiring a CPU. Most operations are matrix multiplication, a highly parallelizable task.
 We can see the difference in CPU and GPU architecture at a high level below:
 
@@ -21,11 +21,9 @@ We can see the difference in CPU and GPU architecture at a high level below:
 *CPU vs. GPU layout. GPUs contain thousands of cores optimized for parallel computation, while CPUs are designed for sequential operations with multiple levels of hierarchical caching. [[1]](#ref-1)*
 
 At a high level, a GPU consists of thousands of tiny processing cores grouped into Streaming Multiprocessors (SMs) designed for massive parallel computation. 
-SMs are independent mini-processors that manage, schedule, and execute hundreds of threads concurrently.
-A high-bandwitch memory pool, Video RAM (VRAM), surrounds the compute units alongside ultra-fast L1 and L2 caches that temporarily cache data for quick access. 
-VRAM is the main warehouse where your model weights, gradients, and incoming data batches live. While it has immense capacity, it is relatively slow for the cores to access directly. 
-To prevent the SMs from waiting on VRAM reads, the GPU utilizes L1 and L2 caches to store relevant data for faster retrieval. 
-The larger L2 cache is shared across the entire GPU, while individual SMs have an even faster L1 cache.
+SMs manage, schedule, and execute hundreds of threads concurrently.
+A high-bandwitch memory pool, Video RAM (VRAM), surrounds the compute units alongside ultra-fast caches that temporarily hold data for quick access. 
+VRAM is the main warehouse where your model weights, gradients, and incoming data batches live. 
 CPUs and GPUs communicate with each other via an interface bridge, which we will analyze more in depth below, as this is the main bridge where bottlenecks occur.
 
 <Callout type="tip" title="Note">
