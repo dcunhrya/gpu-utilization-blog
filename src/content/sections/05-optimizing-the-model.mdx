@@ -18,7 +18,7 @@ In theory we should just load all of our data in at once and have a singular bat
 
 <Callout type="tip" title="Note">
 You may be wondering why batch size, `num_workers`, or any deep learning metric is commonly a power of 2.
-It's not just a de facto rule but a result of Nvidia hardware design.
+It's not just a de facto rule but a result of NVIDIA hardware design.
 
 1. Inside an SM, a GPU does not execute threads individually. It groups them into units called **Warps**, and on NVIDIA GPUs, a warp always contains exactly 32 threads.
 
@@ -32,12 +32,12 @@ For maximum efficiency, **choose multiples of** **32** **or** **64** (or 8 if yo
 By default, PyTorch initializes all model weights and data in FP32 (32-bit floating point). For almost all deep learning tasks, this is overkill. The solution is model quantization, casting tensors down to FP16 or BF16 (16-bit). Why does this matter for utilization?
 
 1. **It halves the memory bottleneck**: Only half as many bytes are being moved across the PCIe bridge and within the GPU's internal VRAM.
-2. **It unlocks the hardware**: Modern Nvidia GPUs possess specialized silicon called Tensor Cores. These cores sit completely idle if you pass them FP32 math. They are specifically engineered to execute 16-bit matrix multiplications at high speeds.
+2. **It unlocks the hardware**: Modern NVIDIA GPUs possess specialized silicon called Tensor Cores. These cores sit completely idle if you pass them FP32 math. They are specifically engineered to execute 16-bit matrix multiplications at high speeds.
 
 Before casting to FP16, make sure performance is the same with a subsampled dataset to confirm the task at hand doesn’t require FP32. Another option is to use PyTorch's `torch.autocast`. 
 This built-in function wraps the forward pass in a context manager that automatically figures out which operations are safe to cast to 16-bit (like matrix multiplications) and which need to stay in 32-bit for numerical stability (like Softmax or LayerNorm). It is essentially a free 2x speedup.
 
-However, FP16 or BF16 is not always the best method for quantization. On modern NVIDIA architectures (A100s or H100s), BF16 should be used instead of FP16 to avoid any NaN losses or gradient underflow. Another good option is Nvidia’s proprietary TF32 (TensorFloat-32) format which is a 19-bit floating-point format that maintains FP32 accuracy with a 10x speedup over FP32 on A100s and H100s [[3]](#ref-3). 
+However, FP16 or BF16 is not always the best method for quantization. On modern NVIDIA architectures (A100s or H100s), BF16 should be used instead of FP16 to avoid any NaN losses or gradient underflow. Another good option is NVIDIA proprietary TF32 (TensorFloat-32) format which is a 19-bit floating-point format that maintains FP32 accuracy with a 10x speedup over FP32 on A100s and H100s [[3]](#ref-3). 
 
 ### Gradient Accumulation (Training Only)
 

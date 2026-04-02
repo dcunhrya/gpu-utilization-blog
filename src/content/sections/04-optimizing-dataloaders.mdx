@@ -15,7 +15,7 @@ Before we can optimize the data pipeline, we must understand how to monitor GPU 
 _Sample output of `nvidia-smi`. The CUDA and driver versions are shown in the header. Each row of the table represents a GPU. The columns show the GPU ID, Power Usage, GPU Utilization, and Memory Usage_
 
 With `watch -n 1 nvidia-smi`, metrics can be monitored and updated every second. However, the best way to get more detailed GPU metrics is either using the PyTorch Profiler or Weights and Biases. 
-Nvidia Nsight Systems is also a great tool for monitoring that is relatively fast to setup [here](https://docs.nvidia.com/nsight-systems/UserGuide/index.html).
+NVIDIA Nsight Systems is also a great tool for monitoring that is relatively fast to setup [here](https://docs.nvidia.com/nsight-systems/UserGuide/index.html).
 Weights and Biases offers the easiest visualization of GPU utilization graphs for our purposes, and these graphs are the easiest way to diagnose poor GPU optimization. 
 An example setup for Weights and Biases is shown here (take directly from Weights and Biases' documentation [[2]](#ref-2)):
 ```python
@@ -87,7 +87,7 @@ It is first read from the disk into paged system RAM and copied by the CPU into 
 
 Setting `pin_memory=True` creates a data fast lane. It instructs your `DataLoader` to allocate batches directly into page-locked memory. This allows the GPU to use Direct Memory Access (DMA) to pull the data directly across the bridge without the CPU having to act as a middleman for the final transfer, significantly reducing latency.
 
-`pin_memory=True`comes with a hardware trade-off. With page-locked memory, the operating system can’t swap this RAM to the hard drive if it runs out of space. 
+`pin_memory=True` comes with a hardware trade-off. With page-locked memory, the operating system can’t swap this RAM to the hard drive if it runs out of space. 
 Normally, data can be swapped to the disk when out of memory, but if you run out of _page-locked_ RAM, an `Out of Memory` error will be thrown. 
 If you get an OOM in your script, be sure to first investigate the `pin_memory` flag before more complex debugging. 
 Furthermore, be careful combining `pin_memory=True` with a high `num_workers` count. 

@@ -22,12 +22,12 @@ We can see the difference in CPU and GPU architecture at a high level below:
 
 At a high level, a GPU consists of thousands of tiny processing cores grouped into Streaming Multiprocessors (SMs) designed for massive parallel computation. 
 SMs manage, schedule, and execute hundreds of threads concurrently.
-A high-bandwitch memory pool, Video RAM (VRAM), surrounds the compute units alongside ultra-fast caches that temporarily hold data for quick access. 
+A high-bandwith memory pool, Video RAM (VRAM), surrounds the compute units alongside ultra-fast caches that temporarily hold data for quick access. 
 VRAM is the main warehouse where your model weights, gradients, and incoming data batches live. 
 CPUs and GPUs communicate with each other via an interface bridge, which we will analyze more in depth below, as this is the main bridge where bottlenecks occur.
 
 <Callout type="tip" title="Note">
-If you are using Nvidia GPUs, there is another component within the GPU called **Tensor Cores**, which accelerate mixed-precision matrix math used in machine learning. 
+If you are using NVIDIA GPUs, there is another component within the GPU called **Tensor Cores**, which accelerate mixed-precision matrix math used in machine learning. 
 They will come up again when we discuss **Mixed Precision**.
 </Callout>
 
@@ -40,7 +40,7 @@ Every time you send a PyTorch tensor to the device using `.to('cuda')`, you are 
 ### What is GPU Utilization?
 
 Now that we have covered GPU anatomy, we need to understand the metrics we are tracking. 
-When using `nvidia-smi`, Weights and Biases, PyTorch profiler, Nvidia Nsight Systems, or any other method of GPU tracking, we generally analyze two main percentages: **Memory Usage** and **Volatile GPU-Util**.
+When using `nvidia-smi`, Weights and Biases, PyTorch profiler, NVIDIA Nsight Systems, or any other method of GPU tracking, we generally analyze two main percentages: **Memory Usage** and **Volatile GPU-Util**.
 
 - **Memory Usage (VRAM)**: VRAM is the GPU’s physical memory. Your VRAM can be at 100% capacity while your GPU is doing nothing. High VRAM usage only means you have successfully loaded your model weights, gradients, and a batch of data onto the GPU's physical memory. 
 - **Volatile GPU-Util (Compute Utilization)**: This is the crucial metric. It measures the percentage of time over the past sample period (usually 1 second) that the GPU's computing kernels were actively executing instructions. The goal is to consistently maximize this percentage!
